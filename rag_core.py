@@ -31,103 +31,102 @@ _SOURCES: List[str] = []
 _CHUNK_EMBEDS: Optional[np.ndarray] = None  # shape: (N, d)
 
 # ---------------- Core utilities ----------------
-# ---------------- Core utilities ----------------
-def _chunk_text(text: str, size: int = CHUNK_SIZE) -> List[str]:
-    """Recursively split text into smaller chunks to respect 'size' limit.
-    Priority:
-    1. Split by double newlines (\n\n) - Paragraphs
-    2. Split by single newlines (\n) - Lines
-    3. Split by sentences (. )
-    4. Split by characters (hard slice)
-    """
-    if not text or not text.strip():
-        return []
+# def _chunk_text(text: str, size: int = CHUNK_SIZE) -> List[str]:
+#     """Recursively split text into smaller chunks to respect 'size' limit.
+#     Priority:
+#     1. Split by double newlines (\n\n) - Paragraphs
+#     2. Split by single newlines (\n) - Lines
+#     3. Split by sentences (. )
+#     4. Split by characters (hard slice)
+#     """
+#     if not text or not text.strip():
+#         return []
     
-    # Base case: if text fits, return it
-    if len(text) <= size:
-        return [text.strip()]
+#     # Base case: if text fits, return it
+#     if len(text) <= size:
+#         return [text.strip()]
     
-    # Try splitting by delimiters in order of preference
-    separators = ["\n\n", "\n", ". ", " "]
+#     # Try splitting by delimiters in order of preference
+#     separators = ["\n\n", "\n", ". ", " "]
     
-    for sep in separators:
-        # If this separator exists in the text
-        if sep in text:
-            splits = text.split(sep)
-            chunks = []
-            current_chunk = []
-            current_len = 0
+#     for sep in separators:
+#         # If this separator exists in the text
+#         if sep in text:
+#             splits = text.split(sep)
+#             chunks = []
+#             current_chunk = []
+#             current_len = 0
             
-            for split in splits:
-                # Re-add separator length unless it's the last element (approximate)
-                # Actually, simple recursion is easier: split all, then recurse on pieces that are too big?
-                # Better strategy: Accumulate splits into a chunk until 'size' is reached.
+#             for split in splits:
+#                 # Re-add separator length unless it's the last element (approximate)
+#                 # Actually, simple recursion is easier: split all, then recurse on pieces that are too big?
+#                 # Better strategy: Accumulate splits into a chunk until 'size' is reached.
                 
-                # Let's use a simpler accumulation approach for clarity and robustness
-                # If a single split is huge, we recurse on IT.
-                pass
+#                 # Let's use a simpler accumulation approach for clarity and robustness
+#                 # If a single split is huge, we recurse on IT.
+#                 pass
             
-            # Let's restart logic with a cleaner recursive accumulation pattern
-            final_chunks = []
-            sub_chunks = text.split(sep)
+#             # Let's restart logic with a cleaner recursive accumulation pattern
+#             final_chunks = []
+#             sub_chunks = text.split(sep)
             
-            current_buffer = ""
-            for sub in sub_chunks:
-                # If sub-chunk itself is massive, we must recurse on it deeper
-                if len(sub) > size:
-                    if current_buffer:
-                        final_chunks.append(current_buffer)
-                        current_buffer = ""
-                    # Recurse on this specific sub-segment with the NEXT separator
-                    # (Logic tricky here without keeping index. simplified: just recurse)
-                    # Actually, simply calling _chunk_text on a large sub-segment might use the SAME separator again if we aren't careful.
-                    # Standard recursive chunkers use a list of separators passed down.
-                    pass 
+#             current_buffer = ""
+#             for sub in sub_chunks:
+#                 # If sub-chunk itself is massive, we must recurse on it deeper
+#                 if len(sub) > size:
+#                     if current_buffer:
+#                         final_chunks.append(current_buffer)
+#                         current_buffer = ""
+#                     # Recurse on this specific sub-segment with the NEXT separator
+#                     # (Logic tricky here without keeping index. simplified: just recurse)
+#                     # Actually, simply calling _chunk_text on a large sub-segment might use the SAME separator again if we aren't careful.
+#                     # Standard recursive chunkers use a list of separators passed down.
+#                     pass 
                 
-            # Re-implementing a standard iterative-recursive approach
-            chunks = [] 
-            splits = text.split(sep)
-            current_chunk = ""
+#             # Re-implementing a standard iterative-recursive approach
+#             chunks = [] 
+#             splits = text.split(sep)
+#             current_chunk = ""
             
-            for split in splits:
-                # Re-attach separator for readability if it's not whitespace
-                # For \n\n and \n, we usually want to keep structure or just use the gap.
-                # For split() behavior, the separator is gone.
+#             for split in splits:
+#                 # Re-attach separator for readability if it's not whitespace
+#                 # For \n\n and \n, we usually want to keep structure or just use the gap.
+#                 # For split() behavior, the separator is gone.
                 
-                # Check if adding this split exceeds size
-                if len(current_chunk) + len(split) + len(sep) <= size:
-                    current_chunk += (sep if current_chunk else "") + split
-                else:
-                    # Current chunk is full, save it
-                    if current_chunk:
-                        chunks.append(current_chunk)
+#                 # Check if adding this split exceeds size
+#                 if len(current_chunk) + len(split) + len(sep) <= size:
+#                     current_chunk += (sep if current_chunk else "") + split
+#                 else:
+#                     # Current chunk is full, save it
+#                     if current_chunk:
+#                         chunks.append(current_chunk)
                     
-                    # Now handle the new split. 
-                    # If the split itself is larger than size, we must recurse on it!
-                    if len(split) > size:
-                        # But we must use a strictly *smaller* separator to avoid infinite recursion
-                        # We can't easily recurse with _chunk_text unless we enable passing separator index.
-                        # For this skeleton, let's implement a hard slice fallback.
-                        if sep == " ": # Final separator
-                             # Hard slice
-                             chunks.extend([split[i:i+size] for i in range(0, len(split), size)])
-                             current_chunk = "" # Consumed
-                        else:
-                             # Recurse with *full* function? No, might infinite loop.
-                             # Simple fallback: Hard slice if logical split fails?
-                             # Let's implement a simplified version for RAG Skeleton:
-                             chunks.extend([split[i:i+size] for i in range(0, len(split), size)])
-                             current_chunk = ""
-                    else:
-                        current_chunk = split
+#                     # Now handle the new split. 
+#                     # If the split itself is larger than size, we must recurse on it!
+#                     if len(split) > size:
+#                         # But we must use a strictly *smaller* separator to avoid infinite recursion
+#                         # We can't easily recurse with _chunk_text unless we enable passing separator index.
+#                         # For this skeleton, let's implement a hard slice fallback.
+#                         if sep == " ": # Final separator
+#                              # Hard slice
+#                              chunks.extend([split[i:i+size] for i in range(0, len(split), size)])
+#                              current_chunk = "" # Consumed
+#                         else:
+#                              # Recurse with *full* function? No, might infinite loop.
+#                              # Simple fallback: Hard slice if logical split fails?
+#                              # Let's implement a simplified version for RAG Skeleton:
+#                              chunks.extend([split[i:i+size] for i in range(0, len(split), size)])
+#                              current_chunk = ""
+#                     else:
+#                         current_chunk = split
             
-            if current_chunk:
-                chunks.append(current_chunk)
+#             if current_chunk:
+#                 chunks.append(current_chunk)
                 
-            return chunks
+#             return chunks
 
-    # If no separators found or all logic fell through (unlikely with " "), hard slice
-    return [text[i : i + size] for i in range(0, len(text), size)]
+#     # If no separators found or all logic fell through (unlikely with " "), hard slice
+#     return [text[i : i + size] for i in range(0, len(text), size)]
 
 
 # Let's Provide a cleaner, verified implementation of recursive splitting.
@@ -190,6 +189,72 @@ def _chunk_text(text: str, size: int = CHUNK_SIZE) -> List[str]:
         return []
     return _recursive_chunk(text, size)
 
+import re
+
+def _sniff_strategy(text_sample: str) -> str:
+    """Detect chunking strategy based on content patterns."""
+    # Check for Markdown Headers (at start of line)
+    # Looks for lines starting with #, ##, or ### followed by a space
+    if re.search(r"^#{1,3}\s", text_sample, re.MULTILINE):
+        return "markdown_splitter"
+    
+    # Check for Q&A Patterns
+    # Looks for lines starting with "Q:" or "Question:"
+    elif re.search(r"^(Q:|Question:)\s", text_sample, re.MULTILINE):
+        return "regex_splitter"
+    
+    # Default Fallback
+    else:
+        return "recursive_splitter"
+
+def _chunk_markdown(text: str, size: int) -> List[str]:
+    """Split by markdown headers."""
+    # Split by headers (e.g., # Header, ## Header)
+    # This regex looks for newline followed by #
+    # We want to keep the header with the content
+    splits = re.split(r"(\n#{1,3}\s.*)", text)
+    chunks = []
+    current_chunk = ""
+    
+    # Reassemble: split gives [text, header, text, header, ...] because of capturing group
+    for part in splits:
+        if re.match(r"\n#{1,3}\s", part):
+            # It's a header, start a new chunk if current is substantial
+            if current_chunk.strip():
+                 # If adding header makes it too big, finalize current
+                 pass # Simple logic: Headers start new chunks usually
+            
+            if current_chunk:
+                chunks.append(current_chunk.strip())
+            current_chunk = part.strip()
+        else:
+            current_chunk += part
+            
+    if current_chunk.strip():
+        chunks.append(current_chunk.strip())
+        
+    return _refine_chunks(chunks, size)
+
+def _chunk_regex(text: str, size: int) -> List[str]:
+    """Split by Q: or Question: identifier."""
+    # Split before "Q:" or "Question:"
+    # Lookahead assertion
+    pattern = r"(?=\n(?:Q:|Question:)\s)"
+    splits = re.split(pattern, text)
+    chunks = [s.strip() for s in splits if s.strip()]
+    return _refine_chunks(chunks, size)
+
+def _refine_chunks(chunks: List[str], size: int) -> List[str]:
+    """Ensure all chunks fit within size using recursive splitter if needed."""
+    final_chunks = []
+    for c in chunks:
+        if len(c) > size:
+            # Fallback to recursive if semantic chunk is too big
+            final_chunks.extend(_recursive_chunk(c, size))
+        else:
+            final_chunks.append(c)
+    return final_chunks
+
 def _load_and_chunk_faqs(faq_dir: str, chunk_size: int = CHUNK_SIZE) -> Tuple[List[str], List[str]]:
     """Load *.md files, chunk each, and return (chunks, matching_source_filenames)."""
     if not faq_dir:
@@ -205,11 +270,22 @@ def _load_and_chunk_faqs(faq_dir: str, chunk_size: int = CHUNK_SIZE) -> Tuple[Li
     for faq_file in faq_dir.glob("*.md"):
         with open(faq_file, "r") as f:
             text = f.read()
-        file_chunks = _chunk_text(text, size=chunk_size)
+            
+        # 1. Sniff Strategy
+        strategy = _sniff_strategy(text[:1000])
+        print(f"File: {faq_file.name} | Strategy: {strategy}")
+        
+        # 2. Dispatch
+        if strategy == "markdown_splitter":
+            file_chunks = _chunk_markdown(text, size=chunk_size)
+        elif strategy == "regex_splitter":
+            file_chunks = _chunk_regex(text, size=chunk_size)
+        else:
+            file_chunks = _recursive_chunk(text, size=chunk_size)
+            
         chunks.extend(file_chunks)
         sources.extend([faq_file.name] * len(file_chunks))
-        # print(file_chunks) # Reduced verbosity
-        # print(sources)
+        
     return chunks, sources
 
 def _embed_texts(texts: List[str]) -> np.ndarray:
@@ -329,14 +405,14 @@ def _preload(target_chunk_size: int = CHUNK_SIZE) -> None:
     
     if not chunks:
         print("Warning: No FAQ chunks found.")
-        # Ensure globals are at least empty lists/None to avoid stale state if re-run
+       
         _CHUNKS = []
         _SOURCES = []
         _CHUNK_EMBEDS = None
         return
 
     # 2. Embed chunks
-    # Note: For production, we'd batch this more carefully or cache embeddings.
+    
     print(f"Embedding {len(chunks)} chunks (Size: {target_chunk_size})...")
     embeds = _embed_texts(chunks)
 
